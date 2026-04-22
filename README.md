@@ -20,7 +20,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.nyxintrus:SimpleConfig:1.0.0'
+    implementation 'com.github.nyxintrus:SimpleConfig:TAG'
 }
 ```
 
@@ -39,7 +39,7 @@ dependencies {
 <dependency>
     <groupId>com.github.nyxintrus</groupId>
     <artifactId>SimpleConfig</artifactId>
-    <version>1.0.0</version>
+    <version>TAG</version>
 </dependency>
 ```
 
