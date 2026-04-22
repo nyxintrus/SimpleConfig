@@ -1,7 +1,6 @@
 package rest.nxs.format;
 
 import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValue;
 import rest.nxs.config.ConfigLoader;
 import rest.nxs.internal.MemoryConfig;
 
@@ -22,7 +21,7 @@ public class HoconConfigLoader implements ConfigLoader {
 
             var conf = ConfigFactory.parseFile(file).resolve();
 
-            for (var entry : conf.entrySet()) {
+            for (Map.Entry<String, com.typesafe.config.ConfigValue> entry : conf.entrySet()) {
                 config.set(entry.getKey(), entry.getValue().unwrapped());
             }
 
@@ -36,63 +35,36 @@ public class HoconConfigLoader implements ConfigLoader {
     @Override
     public void save(File file, MemoryConfig config) {
         try (FileWriter writer = new FileWriter(file)) {
-
-            StringBuilder sb = new StringBuilder();
-
-            writeMap(sb, "", config.getRaw());
-
-            writer.write(sb.toString());
-
+            writeMap(writer, config.getRaw());
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save HOCON config", e);
+            throw new RuntimeException("Failed to save HOCON", e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void writeMap(StringBuilder sb, String prefix, Object raw) {
+    private void writeMap(FileWriter writer, Map<String, Object> map) throws Exception {
 
-        if (raw instanceof Map<?, ?> map) {
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
 
-            for (var entry : map.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
 
-                String key = String.valueOf(entry.getKey());
-                Object value = entry.getValue();
+            if (value instanceof Map) {
 
-                String fullKey = prefix.isEmpty() ? key : prefix + "." + key;
+                writer.write("\n[" + key + "]\n");
+                writeMap(writer, (Map<String, Object>) value);
 
-                writeMap(sb, fullKey, value);
-            }
+            } else if (value instanceof Iterable) {
 
-        } else if (raw instanceof Iterable<?> list) {
+                writer.write(key + " = " + value.toString() + "\n");
 
-            sb.append(prefix).append(" = [");
+            } else if (value instanceof String) {
 
-            boolean first = true;
-            for (Object item : list) {
-                if (!first) sb.append(", ");
-                first = false;
+                writer.write(key + " = \"" + value + "\"\n");
 
-                if (item instanceof String) {
-                    sb.append("\"").append(item).append("\"");
-                } else {
-                    sb.append(item);
-                }
-            }
-
-            sb.append("]\n");
-
-        } else {
-
-            sb.append(prefix)
-                    .append(" = ");
-
-            if (raw instanceof String) {
-                sb.append("\"").append(raw).append("\"");
             } else {
-                sb.append(raw);
-            }
 
-            sb.append("\n");
+                writer.write(key + " = " + value + "\n");
+            }
         }
     }
 }

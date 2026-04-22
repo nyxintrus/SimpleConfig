@@ -43,7 +43,6 @@ public class Config {
 
         MemoryConfig memory = loader.load(file);
 
-        // DEBUG (optional)
         System.out.println("Loaded config: " + memory.getRaw());
 
         return new Config(file, loader, memory);

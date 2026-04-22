@@ -18,7 +18,7 @@ public class YamlConfigLoader implements ConfigLoader {
 
         if (!file.exists()) {
             try {
-                file.createNewFile(); // Auto create
+                file.createNewFile();
             } catch (IOException e) {
                 e.printStackTrace();
             }

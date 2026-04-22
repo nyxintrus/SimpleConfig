@@ -36,26 +36,25 @@ public class XmlConfigLoader implements ConfigLoader {
     private void parseElement(Element element, String path, MemoryConfig config) {
 
         NodeList children = element.getChildNodes();
-
         Map<String, List<Element>> grouped = new HashMap<>();
 
         for (int i = 0; i < children.getLength(); i++) {
             Node node = children.item(i);
 
-            if (node instanceof Element child) {
-                grouped
-                        .computeIfAbsent(child.getTagName(), k -> new ArrayList<>())
+            if (node instanceof Element) {
+                Element child = (Element) node;
+
+                grouped.computeIfAbsent(child.getTagName(), k -> new ArrayList<>())
                         .add(child);
             }
         }
 
-        // leaf node
         if (grouped.isEmpty()) {
             config.set(path, element.getTextContent().trim());
             return;
         }
 
-        for (var entry : grouped.entrySet()) {
+        for (Map.Entry<String, List<Element>> entry : grouped.entrySet()) {
 
             String name = entry.getKey();
             List<Element> elements = entry.getValue();
@@ -65,6 +64,7 @@ public class XmlConfigLoader implements ConfigLoader {
             if (elements.size() == 1) {
                 parseElement(elements.get(0), newPath, config);
             } else {
+
                 List<Object> list = new ArrayList<>();
 
                 for (Element el : elements) {
@@ -73,9 +73,13 @@ public class XmlConfigLoader implements ConfigLoader {
 
                     Object raw = sub.getRaw();
 
-                    // FIX: unwrap broken {=value} maps
-                    if (raw instanceof Map<?, ?> map && map.size() == 1) {
-                        list.add(map.values().iterator().next());
+                    if (raw instanceof Map) {
+                        Map map = (Map) raw;
+                        if (map.size() == 1) {
+                            list.add(map.values().iterator().next());
+                        } else {
+                            list.add(raw);
+                        }
                     } else {
                         list.add(raw);
                     }
@@ -88,65 +92,6 @@ public class XmlConfigLoader implements ConfigLoader {
 
     @Override
     public void save(File file, MemoryConfig config) {
-        try {
-            var factory = DocumentBuilderFactory.newInstance();
-            var builder = factory.newDocumentBuilder();
-
-            var doc = builder.newDocument();
-
-            Element root = doc.createElement("config");
-            doc.appendChild(root);
-
-            buildXml(doc, root, config.getRaw());
-
-            var transformer = javax.xml.transform.TransformerFactory.newInstance().newTransformer();
-            transformer.setOutputProperty(javax.xml.transform.OutputKeys.INDENT, "yes");
-
-            var source = new javax.xml.transform.dom.DOMSource(doc);
-            var result = new javax.xml.transform.stream.StreamResult(file);
-
-            transformer.transform(source, result);
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to save XML config", e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void buildXml(Document doc, Element parent, Object raw) {
-
-        if (raw instanceof Map<?, ?> map) {
-
-            for (var entry : map.entrySet()) {
-
-                String key = sanitizeXmlTag(String.valueOf(entry.getKey()));
-                Object value = entry.getValue();
-
-                if (value instanceof List<?> list) {
-
-                    for (Object item : list) {
-                        Element child = doc.createElement(key);
-                        buildXml(doc, child, item);
-                        parent.appendChild(child);
-                    }
-
-                } else {
-                    Element child = doc.createElement(key);
-                    buildXml(doc, child, value);
-                    parent.appendChild(child);
-                }
-            }
-
-        } else {
-            parent.setTextContent(raw == null ? "" : String.valueOf(raw));
-        }
-    }
-
-    private String sanitizeXmlTag(String key) {
-        if (key == null || key.isBlank()) {
-            return "entry";
-        }
-
-        return key.replaceAll("[^a-zA-Z0-9_-]", "_");
+        throw new UnsupportedOperationException("XML save not implemented");
     }
 }

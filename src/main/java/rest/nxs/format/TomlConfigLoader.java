@@ -51,23 +51,19 @@ public class TomlConfigLoader implements ConfigLoader {
             String key = entry.getKey();
             Object value = entry.getValue();
 
-            // nested table
             if (value instanceof Map<?, ?> sub) {
                 writer.write("\n[" + key + "]\n");
                 writeTable(writer, (Map<String, Object>) sub);
             }
 
-            // list → TOML array
             else if (value instanceof List<?> list) {
                 writer.write(key + " = " + formatList(list) + "\n");
             }
 
-            // string
             else if (value instanceof String s) {
                 writer.write(key + " = \"" + s + "\"\n");
             }
 
-            // number / boolean
             else {
                 writer.write(key + " = " + value + "\n");
             }
