@@ -40,4 +40,22 @@ public class PathParser {
 
         current.put(parts[parts.length - 1], value);
     }
+
+    public static boolean exists(Map<String, Object> map, String path) {
+        return get(map, path) != null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void remove(Map<String, Object> map, String path) {
+        String[] parts = path.split("\\.");
+        Map<String, Object> current = map;
+
+        for (int i = 0; i < parts.length - 1; i++) {
+            Object next = current.get(parts[i]);
+            if (!(next instanceof Map)) return;
+            current = (Map<String, Object>) next;
+        }
+
+        current.remove(parts[parts.length - 1]);
+    }
 }
