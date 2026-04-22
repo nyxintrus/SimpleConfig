@@ -1,15 +1,15 @@
 package rest.nxs.config;
 
-import rest.nxs.format.JsonConfigLoader;
-import rest.nxs.format.YamlConfigLoader;
+import rest.nxs.format.*;
 import rest.nxs.internal.MemoryConfig;
 import rest.nxs.util.TypeConverter;
 
 import java.io.File;
+import java.util.List;
 
 public class Config {
 
-    private final MemoryConfig memory;
+    private MemoryConfig memory;
     private final File file;
     private final ConfigLoader loader;
 
@@ -23,18 +23,50 @@ public class Config {
         File file = new File(path);
 
         ConfigLoader loader;
+        String lower = path.toLowerCase();
 
-        if (path.endsWith(".json")) {
+        if (lower.endsWith(".json")) {
             loader = new JsonConfigLoader();
-        } else if (path.endsWith(".yml") || path.endsWith(".yaml")) {
+        } else if (lower.endsWith(".yml") || lower.endsWith(".yaml")) {
             loader = new YamlConfigLoader();
+        } else if (lower.endsWith(".properties")) {
+            loader = new PropertiesConfigLoader();
+        } else if (lower.endsWith(".toml")) {
+            loader = new TomlConfigLoader();
+        } else if (lower.endsWith(".conf") || lower.endsWith(".hocon")) {
+            loader = new HoconConfigLoader();
+        } else if (lower.endsWith(".xml")) {
+            loader = new XmlConfigLoader();
         } else {
             throw new ConfigException("Unsupported file format: " + path);
         }
 
         MemoryConfig memory = loader.load(file);
 
+        // DEBUG (optional)
+        System.out.println("Loaded config: " + memory.getRaw());
+
         return new Config(file, loader, memory);
+    }
+
+    public Object get(String path) {
+        return memory.get(path);
+    }
+
+    public Object get(String path, Object def) {
+        return memory.get(path, def);
+    }
+
+    public void set(String path, Object value) {
+        memory.set(path, value);
+    }
+
+    public boolean contains(String path) {
+        return memory.contains(path);
+    }
+
+    public void remove(String path) {
+        memory.remove(path);
     }
 
     public int getInt(String path, int def) {
@@ -53,16 +85,28 @@ public class Config {
         return TypeConverter.toString(memory.get(path), def);
     }
 
-    public Object get(String path) {
-        return memory.get(path);
+    public List<String> getStringList(String path) {
+        return TypeConverter.toStringList(memory.get(path));
     }
 
-    public void set(String path, Object value) {
-        memory.set(path, value);
+    public List<Integer> getIntList(String path) {
+        return TypeConverter.toIntList(memory.get(path));
     }
 
-    public boolean contains(String path) {
-        return memory.contains(path);
+    public MemoryConfig getSection(String path) {
+        return memory.getSection(path);
+    }
+
+    public Object getOrSet(String path, Object def) {
+        if (!contains(path)) {
+            set(path, def);
+            return def;
+        }
+        return get(path);
+    }
+
+    public void reload() {
+        this.memory = loader.load(file);
     }
 
     public void save() {
